@@ -17,7 +17,7 @@ from level import MCLevel, EntityLevel
 from materials import alphaMaterials, MCMaterials, namedMaterials
 from mclevelbase import exhaust
 import nbt
-from numpy import array, swapaxes, uint8, zeros
+from numpy import array, swapaxes, uint8, uint16, zeros
 
 log = getLogger(__name__)
 
@@ -64,6 +64,13 @@ class MCSchematic (EntityLevel):
 
         if root_tag:
             self.root_tag = root_tag
+            if "Add" in root_tag:
+                Blocks = zeros(root_tag["Height"].value * root_tag["Length"].value * root_tag["Width"].value, uint16)
+                Blocks[:] += root_tag["Add"].value[:]
+                Blocks <<= 8
+                Blocks[:] += root_tag["Blocks"].value[:]
+                self.root_tag["Blocks"] = nbt.TAG_Short_Array(Blocks)
+                del self.root_tag["Add"]
             if "Materials" in root_tag:
                 self.materials = namedMaterials[self.Materials]
             else:
@@ -81,11 +88,12 @@ class MCSchematic (EntityLevel):
             root_tag["TileEntities"] = nbt.TAG_List()
             root_tag["Materials"] = nbt.TAG_String(self.materials.name)
 
-            root_tag["Blocks"] = nbt.TAG_Byte_Array(zeros((shape[1], shape[2], shape[0]), uint8))
+            root_tag["Blocks"] = nbt.TAG_Short_Array(zeros((shape[1], shape[2], shape[0]), uint16))
             root_tag["Data"] = nbt.TAG_Byte_Array(zeros((shape[1], shape[2], shape[0]), uint8))
 
             self.root_tag = root_tag
 
+        self.Add = zeros((root_tag["Height"].value, root_tag["Length"].value, root_tag["Width"].value), uint8)
         self.packUnpack()
         self.root_tag["Data"].value &= 0xF  # discard high bits
 
@@ -101,6 +109,15 @@ class MCSchematic (EntityLevel):
 
         self.packUnpack()
         with open(filename, 'wb') as chunkfh:
+            temp_tag = self.root_tag
+            self.Add = (self.Blocks[:, :, :] >> 8) & 0xF
+            for i in range(1,15):
+                if i in self.Add:
+                    temp_tag["Add"] = nbt.TAG_Byte_Array(self.Add[:, :, :])
+                    break
+
+            temp_tag["Blocks"] = nbt.TAG_Byte_Array(self.Blocks[:, :, :] & 0xFF)
+
             self.root_tag.save(chunkfh)
 
         self.packUnpack()
@@ -278,7 +295,7 @@ class MCSchematic (EntityLevel):
         x, y, z = shape
         shape = (x, z, y)
 
-        self.root_tag["Blocks"].value = zeros(dtype='uint8', shape=shape)
+        self.root_tag["Blocks"].value = zeros(dtype='uint16', shape=shape)
         self.root_tag["Data"].value = zeros(dtype='uint8', shape=shape)
         self.shapeChunkData()
 
@@ -322,7 +339,7 @@ class INVEditChest(MCSchematic):
     Width = 1
     Height = 1
     Length = 1
-    Blocks = array([[[alphaMaterials.Chest.ID]]], 'uint8')
+    Blocks = array([[[alphaMaterials.Chest.ID]]], 'uint16')
     Data = array([[[0]]], 'uint8')
     Entities = nbt.TAG_List()
     Materials = alphaMaterials

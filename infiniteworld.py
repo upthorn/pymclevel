@@ -200,12 +200,15 @@ class AnvilChunkData(object):
                 (SkyLight == 15).all()):
                 continue
 
-            Add = packNibbleArray(Add)
             Data = packNibbleArray(Data)
             BlockLight = packNibbleArray(BlockLight)
             SkyLight = packNibbleArray(SkyLight)
 
-            section['Add'] = nbt.TAG_Byte_Array(array(Add))
+            for i in range(1,15):
+                if i in Add:
+                    Add = packNibbleArray(Add)
+                    section['Add'] = nbt.TAG_Byte_Array(array(Add))
+                    break
             section['Blocks'] = nbt.TAG_Byte_Array(array(Blocks))
             section['Data'] = nbt.TAG_Byte_Array(array(Data))
             section['BlockLight'] = nbt.TAG_Byte_Array(array(BlockLight))
