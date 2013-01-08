@@ -476,7 +476,7 @@ rotationClasses.append(Vines)
 def masterRotationTable(attrname):
     # compute a 256x16 table mapping each possible blocktype/data combination to
     # the resulting data when the block is rotated
-    table = zeros((256, 16), dtype='uint8')
+    table = zeros((4096, 16), dtype='uint8')
     table[:] = arange(16, dtype='uint8')
     for cls in rotationClasses:
         if hasattr(cls, attrname):

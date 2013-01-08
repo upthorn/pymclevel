@@ -67,21 +67,21 @@ class MCMaterials(object):
 
         self.defaultName = defaultName
 
-        self.blockTextures = zeros((256, 16, 6, 2), dtype='uint8')
+        self.blockTextures = zeros((4096, 16, 6, 2), dtype='uint8')
         self.blockTextures[:] = self.defaultTexture
-        self.names = [[defaultName] * 16 for i in range(256)]
-        self.aka = [[""] * 16 for i in range(256)]
+        self.names = [[defaultName] * 16 for i in range(4096)]
+        self.aka = [[""] * 16 for i in range(4096)]
 
-        self.type = [["NORMAL"] * 16] * 256
+        self.type = [["NORMAL"] * 16] * 4096
         self.blocksByType = defaultdict(list)
         self.allBlocks = []
         self.blocksByID = {}
 
-        self.lightEmission = zeros(256, dtype='uint8')
+        self.lightEmission = zeros(4096, dtype='uint8')
         self.lightEmission[:] = self.defaultBrightness
-        self.lightAbsorption = zeros(256, dtype='uint8')
+        self.lightAbsorption = zeros(4096, dtype='uint8')
         self.lightAbsorption[:] = self.defaultOpacity
-        self.flatColors = zeros((256, 16, 4), dtype='uint8')
+        self.flatColors = zeros((4096, 16, 4), dtype='uint8')
         self.flatColors[:] = self.defaultColor
 
         self.idStr = {}
@@ -752,12 +752,12 @@ pocketMaterials.NetherReactorUsed = pocketMaterials[247, 1]
 #                      b.ID, b.blockData)
 #                  for b in sorted(mats.pocketMaterials.allBlocks)])
 
-_indices = rollaxis(indices((256, 16)), 0, 3)
+_indices = rollaxis(indices((4096, 16)), 0, 3)
 
 
 def _filterTable(filters, unavailable, default=(0, 0)):
-    # a filter table is a 256x16 table of (ID, data) pairs.
-    table = zeros((256, 16, 2), dtype='uint8')
+    # a filter table is a 4096x16 table of (ID, data) pairs.
+    table = zeros((4096, 16, 2), dtype='uint8')
     table[:] = _indices
     for u in unavailable:
         try:

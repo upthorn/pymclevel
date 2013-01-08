@@ -8,7 +8,7 @@ import blockrotation
 from entity import TileEntity
 
 def blockReplaceTable(blocksToReplace):
-    blocktable = numpy.zeros((256, 16), dtype='bool')
+    blocktable = numpy.zeros((4096, 16), dtype='bool')
     for b in blocksToReplace:
         if b.hasVariants:
             blocktable[b.ID, b.blockData] = True

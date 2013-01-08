@@ -58,7 +58,7 @@ class _ZeroChunk(ChunkBase):
     def __init__(self, height=512):
         zeroChunk = zeros((16, 16, height), 'uint8')
         whiteLight = zeroChunk + 15
-        self.Blocks = zeroChunk
+        self.Blocks = zeros((16, 16, height), 'uint16')
         self.BlockLight = whiteLight
         self.SkyLight = whiteLight
         self.Data = zeroChunk
@@ -113,7 +113,9 @@ class AnvilChunkData(object):
         self.root_tag = root_tag
         self.dirty = False
 
-        self.Blocks = zeros((16, 16, world.Height), 'uint8')  # xxx uint16?
+        self.Add = zeros((16, 16, world.Height), 'uint8')
+        self.BlocksData = zeros((16, 16, world.Height), 'uint8')
+        self.Blocks = zeros((16, 16, world.Height), 'uint16')
         self.Data = zeros((16, 16, world.Height), 'uint8')
         self.BlockLight = zeros((16, 16, world.Height), 'uint8')
         self.SkyLight = zeros((16, 16, world.Height), 'uint8')
@@ -152,16 +154,26 @@ class AnvilChunkData(object):
 
         for sec in self.root_tag["Level"].pop("Sections", []):
             y = sec["Y"].value * 16
-            for name in "Blocks", "Data", "SkyLight", "BlockLight":
-                arr = getattr(self, name)
-                secarray = sec[name].value
+            flag = 0
+            for name in "Add", "Blocks", "Data", "SkyLight", "BlockLight":
                 if name == "Blocks":
+                    secarray = sec[name].value
+                    arr = getattr(self, "BlocksData")
                     secarray.shape = (16, 16, 16)
                 else:
+                    if name in sec:
+                        secarray = sec[name].value
+                    else:
+                        secarray = zeros((16, 16, 8), 'uint8')
+                    arr = getattr(self, name)
                     secarray.shape = (16, 16, 8)
                     secarray = unpackNibbleArray(secarray)
 
-                arr[..., y:y + 16] = secarray.swapaxes(0, 2)
+                arr[..., y:y + 16] += secarray.swapaxes(0, 2)
+            self.Blocks[:, :, :] = self.Add[:, :, :]
+            self.Blocks[:, :, :] <<= 8
+            self.Blocks[:, :, :] += self.BlocksData[:, :, :]
+                
 
 
     def savedTagData(self):
@@ -169,11 +181,15 @@ class AnvilChunkData(object):
 
         log.debug(u"Saving chunk: {0}".format(self))
         sanitizeBlocks(self)
+        
+        self.BlocksData[:, :, :] = self.Blocks[:, :, :] & 0xFF
+        self.Add[:, :, :] = (self.Blocks[:, :, :] >> 8) & 0xF
 
         sections = nbt.TAG_List()
         for y in range(0, self.world.Height, 16):
             section = nbt.TAG_Compound()
 
+            Add = self.Add[..., y:y + 16].swapaxes(0, 2)
             Blocks = self.Blocks[..., y:y + 16].swapaxes(0, 2)
             Data = self.Data[..., y:y + 16].swapaxes(0, 2)
             BlockLight = self.BlockLight[..., y:y + 16].swapaxes(0, 2)
@@ -184,10 +200,12 @@ class AnvilChunkData(object):
                 (SkyLight == 15).all()):
                 continue
 
+            Add = packNibbleArray(Add)
             Data = packNibbleArray(Data)
             BlockLight = packNibbleArray(BlockLight)
             SkyLight = packNibbleArray(SkyLight)
 
+            section['Add'] = nbt.TAG_Byte_Array(array(Add))
             section['Blocks'] = nbt.TAG_Byte_Array(array(Blocks))
             section['Data'] = nbt.TAG_Byte_Array(array(Data))
             section['BlockLight'] = nbt.TAG_Byte_Array(array(BlockLight))

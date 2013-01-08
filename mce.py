@@ -269,7 +269,7 @@ class mce(object):
         return blockInfo
 
     def readBlocksToCopy(self, command):
-        blocksToCopy = range(256)
+        blocksToCopy = range(4096)
         while len(command):
             word = command.pop()
             if word == "noair":
@@ -460,7 +460,7 @@ class mce(object):
             if i % 100 == 0:
                 logging.info("Chunk {0}...".format(i))
 
-        for blockID in range(256):
+        for blockID in range(4096):
             block = self.level.materials.blockWithID(blockID, 0)
             if block.hasVariants:
                 for data in range(16):
